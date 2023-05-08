@@ -1,1 +1,1 @@
-export const handleError = (error) => window.alert(error);
+export const handleError = (error) => window.alert(error?.message || "Error");

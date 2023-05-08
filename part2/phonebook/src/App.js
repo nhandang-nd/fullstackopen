@@ -9,9 +9,12 @@ import {
   getAll,
   updateNumber,
 } from "./services/phoneBook";
+import Notification, { NotificationType } from "./components/Notification";
 
 const App = () => {
   const [persons, setPersons] = React.useState([]);
+  const [notificationMessage, setNotificationMessage] = React.useState(null);
+  const [notificationType, setNotificationType] = React.useState(null);
 
   useEffect(() => {
     handleGetAllPersons();
@@ -35,10 +38,26 @@ const App = () => {
 
   const handleChangeSearchText = (e) => setSearchText(e.target.value);
 
+  const handleSetNotificationMessage = (message, type) => {
+    console.log(
+      "🚀 ~ file: App.js:42 ~ handleSetNotificationMessage ~ message:",
+      message
+    );
+    setNotificationMessage(message);
+    setNotificationType(type);
+    setTimeout(() => {
+      setNotificationMessage(null);
+    }, 5000);
+  };
+
   const handleAddPerson = (person) => (successCallback) => {
     addPerson(person).then(
       (res) => {
         setPersons([...persons, res]);
+        handleSetNotificationMessage(
+          `Added ${res.name}`,
+          NotificationType.Success
+        );
         successCallback();
       },
       (error) => handleError(error)
@@ -59,7 +78,11 @@ const App = () => {
     const { id, name } = person;
     const isDeleting = window.confirm(`Delete ${name}?`);
     if (isDeleting) {
-      deletePerson(id).then((_res) => handleGetAllPersons());
+      deletePerson(id)
+        .then((_res) => handleGetAllPersons())
+        .catch((error) =>
+          handleSetNotificationMessage(error.message, NotificationType.Error)
+        );
     }
   };
 
@@ -70,6 +93,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} type={notificationType} />
       <SearchBox value={searchText} onChange={handleChangeSearchText} />
       <h2>Add a new</h2>
       <AddPersonForm
