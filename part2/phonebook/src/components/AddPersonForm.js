@@ -1,19 +1,35 @@
-import React from "react";
+import React, { useCallback } from "react";
 
-const AddPersonForm = ({ persons, onAddPerson }) => {
+const AddPersonForm = ({ persons, onAddPerson, onUpdatePerson }) => {
   const [newName, setNewName] = React.useState("");
   const [newPhone, setNewPhone] = React.useState("");
-  const handleSubmit = React.useCallback(
-    (e) => {
-      e.preventDefault();
-      const isExisted = persons.some((person) => person.name === newName);
-      if (isExisted) return alert(`${newName} is already added to phonebook`);
-      setNewName("");
-      setNewPhone("");
-      onAddPerson({ name: newName, number: newPhone, id: persons.length + 1 });
-    },
-    [newName, newPhone, persons, onAddPerson]
-  );
+
+  const resetFormValues = useCallback(() => {
+    setNewName("");
+    setNewPhone("");
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const existedPerson = persons.find((person) => person.name === newName);
+
+    if (!!existedPerson) {
+      const { name, id } = existedPerson;
+      const isUpdating = window.confirm(
+        `${name} is already added to phonebook, replace the old number with a new one?`
+      );
+      if (isUpdating)
+        onUpdatePerson(id, {
+          ...existedPerson,
+          number: newPhone,
+        })(resetFormValues);
+    } else
+      onAddPerson({
+        name: newName,
+        number: newPhone,
+        id: persons.length + 1,
+      })(resetFormValues);
+  };
 
   return (
     <form onSubmit={handleSubmit}>

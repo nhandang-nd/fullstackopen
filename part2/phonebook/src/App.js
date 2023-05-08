@@ -1,18 +1,28 @@
-import React from "react";
-import SearchBox from "./components/SearchBox";
+import React, { useEffect } from "react";
 import AddPersonForm from "./components/AddPersonForm";
 import PersonsList from "./components/PersonsList";
-
-const INITIAL_PERSONS = [
-  { name: "Arto Hellas", number: "040-123456", id: 1 },
-  { name: "Ada Lovelace", number: "39-44-5323523", id: 2 },
-  { name: "Dan Abramov", number: "12-43-234345", id: 3 },
-  { name: "Mary Poppendieck", number: "39-23-6423122", id: 4 },
-];
+import SearchBox from "./components/SearchBox";
+import { handleError } from "./services/errorHandlers";
+import {
+  addPerson,
+  deletePerson,
+  getAll,
+  updateNumber,
+} from "./services/phoneBook";
 
 const App = () => {
-  const [persons, setPersons] = React.useState(INITIAL_PERSONS);
-  console.log("🚀 ~ file: App.js:15 ~ App ~ persons:", persons);
+  const [persons, setPersons] = React.useState([]);
+
+  useEffect(() => {
+    handleGetAllPersons();
+  }, []);
+
+  const handleGetAllPersons = () =>
+    getAll().then(
+      (response) => setPersons(response),
+      (error) => handleError(error)
+    );
+
   const [searchText, setSearchText] = React.useState("");
 
   const filteredPersons = React.useMemo(
@@ -25,8 +35,36 @@ const App = () => {
 
   const handleChangeSearchText = (e) => setSearchText(e.target.value);
 
-  const handleAddPerson = (person) => {
-    setPersons([...persons, person]);
+  const handleAddPerson = (person) => (successCallback) => {
+    addPerson(person).then(
+      (res) => {
+        setPersons([...persons, res]);
+        successCallback();
+      },
+      (error) => handleError(error)
+    );
+  };
+
+  const handleUpdatePerson = (id, newPhone) => (successCallback) => {
+    updateNumber(id, newPhone).then(
+      (_) => {
+        handleGetAllPersons();
+        successCallback();
+      },
+      (error) => handleError(error)
+    );
+  };
+
+  const showDeleteWarningDialog = (person) => {
+    const { id, name } = person;
+    const isDeleting = window.confirm(`Delete ${name}?`);
+    if (isDeleting) {
+      deletePerson(id).then((_res) => handleGetAllPersons());
+    }
+  };
+
+  const handleDeletePerson = (person) => () => {
+    showDeleteWarningDialog(person);
   };
 
   return (
@@ -34,9 +72,13 @@ const App = () => {
       <h2>Phonebook</h2>
       <SearchBox value={searchText} onChange={handleChangeSearchText} />
       <h2>Add a new</h2>
-      <AddPersonForm persons={persons} onAddPerson={handleAddPerson} />
+      <AddPersonForm
+        persons={persons}
+        onAddPerson={handleAddPerson}
+        onUpdatePerson={handleUpdatePerson}
+      />
       <h2>Numbers</h2>
-      <PersonsList persons={filteredPersons} />
+      <PersonsList persons={filteredPersons} onDelete={handleDeletePerson} />
     </div>
   );
 };
